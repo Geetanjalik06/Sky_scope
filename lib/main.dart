@@ -8,7 +8,6 @@ import 'screens/home_dashboard.dart';
 import 'screens/metar_decoder.dart';
 import 'screens/taf_decoder.dart';
 import 'screens/smart_interpretation.dart';
-import 'screens/airport_weather.dart';
 import 'screens/wind_calculator.dart';
 
 void main() {
@@ -41,7 +40,6 @@ class SkyScopeApp extends StatelessWidget {
         '/home': (context) => const HomeDashboard(),
 
         /// Weather & Decoders
-        '/airport-weather': (context) => const AirportWeatherScreen(),
         '/metar-decoder': (context) => const MetarDecoderScreen(),
         '/taf-decoder': (context) => const TafDecoderScreen(),
 

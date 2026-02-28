@@ -1,7 +1,54 @@
 import 'package:flutter/material.dart';
+import '../weather_service.dart';
 
-class AirportWeatherScreen extends StatelessWidget {
-  const AirportWeatherScreen({super.key});
+class AirportWeatherScreen extends StatefulWidget {
+  final String icao;
+  final String airportName;
+
+  const AirportWeatherScreen({
+    super.key,
+    required this.icao,
+    required this.airportName,
+  });
+
+  @override
+  State<AirportWeatherScreen> createState() => _AirportWeatherScreenState();
+}
+
+class _AirportWeatherScreenState extends State<AirportWeatherScreen> {
+  Map<String, dynamic>? _metar;
+  Map<String, dynamic>? _taf;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final metar = await WeatherService.fetchMetar(widget.icao);
+      final taf = await WeatherService.fetchTaf(widget.icao);
+
+      setState(() {
+        _metar = metar;
+        _taf = taf;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load weather data';
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,152 +61,192 @@ class AirportWeatherScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Mumbai - VABB',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          '${widget.airportName} - ${widget.icao}',
+          style: const TextStyle(color: Colors.white),
         ),
         actions: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.refresh, color: Colors.white),
-              SizedBox(height: 2),
-              Text(
-                'Last updated: 2 min ago',
-                style: TextStyle(fontSize: 10, color: Colors.white54),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _fetchData,
           ),
-          const SizedBox(width: 12),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            /// ================= CURRENT WEATHER =================
-            const Text(
-              'Current Weather',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A2B3C),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: const [
-                      _WeatherStat(
-                        icon: Icons.wb_sunny,
-                        label: 'Wind',
-                        value: '120\n120/10kts',
-                      ),
-                      _WeatherStat(
-                        icon: Icons.visibility,
-                        label: 'Visibility',
-                        value: '8km',
-                      ),
-                      _WeatherStat(
-                        icon: Icons.cloud,
-                        label: 'Clouds',
-                        value: 'SCT030',
-                      ),
-                      _WeatherStat(
-                        icon: Icons.thermostat,
-                        label: 'Temp/QNH',
-                        value: '28°C/1012',
+      body: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.green),
+            )
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 48),
+                      const SizedBox(height: 12),
+                      Text(_error!,
+                          style: const TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _fetchData,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green),
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Clear skies with light wind from the East. Good visibility.',
-                    style: TextStyle(color: Colors.white70),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// ===== CURRENT WEATHER =====
+                      const Text(
+                        'Current Weather',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A2B3C),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _WeatherStat(
+                                  icon: Icons.air,
+                                  label: 'Wind',
+                                  value: _metar != null
+                                      ? '${_metar!['wdir'] ?? '-'}°/${_metar!['wspd'] ?? '-'}kt'
+                                      : '-',
+                                ),
+                                _WeatherStat(
+                                  icon: Icons.visibility,
+                                  label: 'Visibility',
+                                  value: _metar != null
+                                      ? '${_metar!['visib'] ?? '-'} sm'
+                                      : '-',
+                                ),
+                                _WeatherStat(
+                                  icon: Icons.cloud,
+                                  label: 'Clouds',
+                                  value: _metar != null &&
+                                          _metar!['clouds'] != null &&
+                                          (_metar!['clouds'] as List).isNotEmpty
+                                      ? '${(_metar!['clouds'] as List)[0]['cover']}${(_metar!['clouds'] as List)[0]['base']}'
+                                      : 'CLR',
+                                ),
+                                _WeatherStat(
+                                  icon: Icons.thermostat,
+                                  label: 'Temp/QNH',
+                                  value: _metar != null
+                                      ? '${_metar!['temp'] ?? '-'}°/${_metar!['altim'] ?? '-'}'
+                                      : '-',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              _metar?['rawOb'] ?? 'No METAR data available',
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      /// ===== RAW METAR =====
+                      const Text(
+                        'Raw METAR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A2B3C),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _metar?['rawOb'] ?? 'No data available',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      /// ===== RAW TAF =====
+                      const Text(
+                        'Raw TAF',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A2B3C),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _taf?['rawTAF'] ?? 'No TAF data available',
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      /// ===== ACTION BUTTONS =====
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _ActionButton(
+                            label: 'Decode METAR',
+                            onTap: () {},
+                          ),
+                          _ActionButton(
+                            label: 'Decode TAF',
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            /// ================= FORECAST =================
-            const Text(
-              'Forecast',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: const [
-                _ForecastCard(
-                  title: 'FM 1000Z',
-                  description: 'Wind 120/10kts, Vis >8km\nNSW',
-                  status: ForecastStatus.good,
                 ),
-                SizedBox(width: 10),
-                _ForecastCard(
-                  title: 'TEMPO 1400Z',
-                  description: 'Wind 140/15G25KT,\nTSRA',
-                  status: ForecastStatus.warning,
-                ),
-                SizedBox(width: 10),
-                _ForecastCard(
-                  title: 'Visibility Deterioration',
-                  description: 'Wind 160/12KT,\n2km BRA',
-                  status: ForecastStatus.danger,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            /// ================= ACTION BUTTONS =================
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _ActionButton(
-                  label: 'Decode METAR',
-                  onTap: () {},
-                ),
-                _ActionButton(
-                  label: 'Decode TAF',
-                  onTap: () {},
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            /// ================= RAW SECTIONS =================
-            _ExpandableSection(title: 'Raw METAR'),
-            const SizedBox(height: 8),
-            _ExpandableSection(title: 'Raw TAF'),
-          ],
-        ),
-      ),
     );
   }
 }
 
-/// ================= WEATHER STAT =================
+/// ===== WEATHER STAT =====
 class _WeatherStat extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -189,93 +276,7 @@ class _WeatherStat extends StatelessWidget {
   }
 }
 
-/// ================= FORECAST CARD =================
-enum ForecastStatus { good, warning, danger }
-
-class _ForecastCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final ForecastStatus status;
-
-  const _ForecastCard({
-    required this.title,
-    required this.description,
-    required this.status,
-  });
-
-  Color get bgColor {
-    switch (status) {
-      case ForecastStatus.good:
-        return const Color(0xFFE8F5E9);
-      case ForecastStatus.warning:
-        return const Color(0xFFFFF3E0);
-      case ForecastStatus.danger:
-        return const Color(0xFFFFEBEE);
-    }
-  }
-
-  Color get textColor {
-    switch (status) {
-      case ForecastStatus.good:
-        return Colors.green;
-      case ForecastStatus.warning:
-        return Colors.orange;
-      case ForecastStatus.danger:
-        return Colors.red;
-    }
-  }
-
-  IconData get icon {
-    switch (status) {
-      case ForecastStatus.good:
-        return Icons.check_circle;
-      case ForecastStatus.warning:
-        return Icons.flash_on;
-      case ForecastStatus.danger:
-        return Icons.warning;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: textColor, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: TextStyle(color: textColor, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// ================= ACTION BUTTON =================
+/// ===== ACTION BUTTON =====
 class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
@@ -295,37 +296,6 @@ class _ActionButton extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(color: Colors.white),
-      ),
-    );
-  }
-}
-
-/// ================= EXPANDABLE SECTION =================
-class _ExpandableSection extends StatelessWidget {
-  final String title;
-
-  const _ExpandableSection({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A2B3C),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const Icon(Icons.expand_more, color: Colors.white70),
-        ],
       ),
     );
   }
