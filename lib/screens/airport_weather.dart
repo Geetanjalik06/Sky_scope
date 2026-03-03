@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../weather_service.dart';
+import 'metar_decoder.dart';
+import 'taf_decoder.dart';
 
 class AirportWeatherScreen extends StatefulWidget {
   final String icao;
@@ -231,11 +233,29 @@ class _AirportWeatherScreenState extends State<AirportWeatherScreen> {
                         children: [
                           _ActionButton(
                             label: 'Decode METAR',
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MetarDecoderScreen(
+                                    rawMetar: _metar?['rawOb'],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           _ActionButton(
                             label: 'Decode TAF',
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TafDecoderScreen(
+                                    rawTaf: _taf?['rawTAF'],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

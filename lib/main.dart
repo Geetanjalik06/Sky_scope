@@ -39,7 +39,7 @@ class SkyScopeApp extends StatelessWidget {
         /// Main Dashboard (After Splash)
         '/home': (context) => const HomeDashboard(),
 
-        /// Weather & Decoders
+        /// Decoders — open empty for manual input from home nav
         '/metar-decoder': (context) => const MetarDecoderScreen(),
         '/taf-decoder': (context) => const TafDecoderScreen(),
 

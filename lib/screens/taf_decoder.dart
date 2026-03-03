@@ -22,7 +22,7 @@ class TafData {
   List<TafSection> sections = [];
 }
 
-/// ===================== TAF PARSER (UNCHANGED) =====================
+/// ===================== TAF PARSER =====================
 class TafParser {
   static TafData parse(String raw) {
     final data = TafData();
@@ -91,9 +91,11 @@ class TafParser {
   }
 }
 
-/// ===================== UPDATED UI =====================
+/// ===================== UI =====================
 class TafDecoderScreen extends StatefulWidget {
-  const TafDecoderScreen({super.key});
+  final String? rawTaf; // optional — passed from AirportWeatherScreen
+
+  const TafDecoderScreen({super.key, this.rawTaf});
 
   @override
   State<TafDecoderScreen> createState() => _TafDecoderScreenState();
@@ -102,6 +104,18 @@ class TafDecoderScreen extends StatefulWidget {
 class _TafDecoderScreenState extends State<TafDecoderScreen> {
   final TextEditingController _controller = TextEditingController();
   TafData? taf;
+
+  @override
+  void initState() {
+    super.initState();
+    // If raw TAF was passed, auto fill and decode
+    if (widget.rawTaf != null && widget.rawTaf!.isNotEmpty) {
+      _controller.text = widget.rawTaf!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        decodeTaf();
+      });
+    }
+  }
 
   void decodeTaf() {
     if (_controller.text.trim().isEmpty) return;
@@ -117,13 +131,17 @@ class _TafDecoderScreenState extends State<TafDecoderScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B1C2D),
         elevation: 0,
-        title: const Text('TAF Decoder'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('TAF Decoder', style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// INPUT (Same as METAR style)
+            /// INPUT
             TextField(
               controller: _controller,
               maxLines: 4,
@@ -185,7 +203,6 @@ class _TafDecoderScreenState extends State<TafDecoderScreen> {
     );
   }
 
-  /// METAR STYLE CARD
   Widget _card(IconData icon, String title, String content) {
     return Container(
       width: double.infinity,

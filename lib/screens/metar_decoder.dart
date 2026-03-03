@@ -1,21 +1,5 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MetarDecoderApp());
-}
-
-class MetarDecoderApp extends StatelessWidget {
-  const MetarDecoderApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MetarDecoderScreen(),
-    );
-  }
-}
-
 /// ===================== INDIAN AIRPORTS =====================
 const Map<String, String> indianAirports = {
   'VIDP': 'Delhi – Indira Gandhi Intl',
@@ -55,21 +39,13 @@ class MetarParser {
         continue;
       }
 
-      // ICAO
       if (RegExp(r'^[A-Z]{4}$').hasMatch(token)) {
         data.station = token;
         data.stationName = indianAirports[token] ?? 'Unknown Airport';
-      }
-
-      // Time
-      else if (RegExp(r'^\d{6}Z$').hasMatch(token)) {
+      } else if (RegExp(r'^\d{6}Z$').hasMatch(token)) {
         data.time = token;
-      }
-
-      // Wind
-      else if (RegExp(r'^(VRB|\d{3})\d{2}(G\d{2})?KT$').hasMatch(token)) {
+      } else if (RegExp(r'^(VRB|\d{3})\d{2}(G\d{2})?KT$').hasMatch(token)) {
         final windPart = token.replaceAll('KT', '');
-
         if (windPart.startsWith('VRB')) {
           data.windDir = -1;
           data.windSpeed = int.parse(windPart.substring(3, 5));
@@ -77,46 +53,30 @@ class MetarParser {
           data.windDir = int.parse(windPart.substring(0, 3));
           data.windSpeed = int.parse(windPart.substring(3, 5));
         }
-
         if (windPart.contains('G')) {
           data.windGust = int.parse(windPart.split('G')[1]);
         }
-      }
-
-      // Visibility
-      else if (token == 'CAVOK') {
+      } else if (token == 'CAVOK') {
         data.visibility = 10000;
       } else if (RegExp(r'^\d{4}$').hasMatch(token)) {
         data.visibility = int.parse(token);
-      }
-
-      // Weather
-      else if (RegExp(r'^[-+]?RA$').hasMatch(token) ||
+      } else if (RegExp(r'^[-+]?RA$').hasMatch(token) ||
           token == 'TS' ||
           token == 'FG' ||
           token == 'BR' ||
           token == 'FU') {
         data.weather.add(token);
-      }
-
-      // Clouds
-      else if (token.startsWith('FEW') ||
+      } else if (token.startsWith('FEW') ||
           token.startsWith('SCT') ||
           token.startsWith('BKN') ||
           token.startsWith('OVC') ||
           token == 'NSC') {
         data.cloud = token;
-      }
-
-      // Temp / Dew
-      else if (RegExp(r'^M?\d{2}/M?\d{2}$').hasMatch(token)) {
+      } else if (RegExp(r'^M?\d{2}/M?\d{2}$').hasMatch(token)) {
         final parts = token.split('/');
         data.temperature = int.parse(parts[0].replaceAll('M', '-'));
         data.dewPoint = int.parse(parts[1].replaceAll('M', '-'));
-      }
-
-      // Pressure
-      else if (token.startsWith('Q')) {
+      } else if (token.startsWith('Q')) {
         data.qnh = int.tryParse(token.substring(1)) ?? 0;
       }
     }
@@ -127,7 +87,9 @@ class MetarParser {
 
 /// ===================== UI =====================
 class MetarDecoderScreen extends StatefulWidget {
-  const MetarDecoderScreen({super.key});
+  final String? rawMetar; // optional — passed from AirportWeatherScreen
+
+  const MetarDecoderScreen({super.key, this.rawMetar});
 
   @override
   State<MetarDecoderScreen> createState() => _MetarDecoderScreenState();
@@ -137,9 +99,20 @@ class _MetarDecoderScreenState extends State<MetarDecoderScreen> {
   final TextEditingController _controller = TextEditingController();
   MetarData? decoded;
 
+  @override
+  void initState() {
+    super.initState();
+    // If raw METAR was passed, auto fill and decode
+    if (widget.rawMetar != null && widget.rawMetar!.isNotEmpty) {
+      _controller.text = widget.rawMetar!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        decodeMetar();
+      });
+    }
+  }
+
   void decodeMetar() {
     if (_controller.text.trim().isEmpty) return;
-
     setState(() {
       decoded = MetarParser.parse(_controller.text.trim());
     });
@@ -152,7 +125,12 @@ class _MetarDecoderScreenState extends State<MetarDecoderScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B1C2D),
         elevation: 0,
-        title: const Text('METAR Decoder'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title:
+            const Text('METAR Decoder', style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

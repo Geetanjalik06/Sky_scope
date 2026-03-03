@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'airport_weather.dart';
 import 'smart_interpretation.dart';
-import 'metar_decoder.dart';
-import 'taf_decoder.dart';
 import 'wind_calculator.dart';
 
 // Mock airport data - replace with real API later
@@ -232,7 +230,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
                 const SizedBox(height: 12),
 
-                /// AIRPORT CARD — navigates to AirportWeatherScreen with ICAO
+                /// AIRPORT CARD
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -324,58 +322,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 16),
-
-                /// TRAINING CHECK LIST
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF152636),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _TrainingCheckItem(
-                          text: 'Wind within student solo limits'),
-                      _TrainingCheckItem(text: 'Visibility above VFR minimums'),
-                      _TrainingCheckItem(text: 'No thunderstorms or CB clouds'),
-                      _TrainingCheckItem(text: 'Suitable for circuit practice'),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                /// STUDENT SOLO LIMITS
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF142A3A),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Student Solo Limits',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      _LimitItem(label: 'Max wind', value: '15 kt'),
-                      _LimitItem(label: 'Max crosswind', value: '7 kt'),
-                      _LimitItem(label: 'Min visibility', value: '5 km'),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -394,11 +340,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
               GestureDetector(
                 onTap: () {
                   setState(() => _currentNavIndex = 0);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const MetarDecoderScreen()),
-                  );
+                  Navigator.pushNamed(context, '/metar-decoder');
                 },
                 child: _BottomNavItem(
                     icon: Icons.text_snippet_outlined,
@@ -408,10 +350,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
               GestureDetector(
                 onTap: () {
                   setState(() => _currentNavIndex = 1);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const TafDecoderScreen()),
-                  );
+                  Navigator.pushNamed(context, '/taf-decoder');
                 },
                 child: _BottomNavItem(
                     icon: Icons.wb_sunny_outlined,
@@ -459,54 +398,6 @@ class _HomeDashboardState extends State<HomeDashboard> {
 }
 
 /// ================= SUPPORT WIDGETS =================
-
-class _TrainingCheckItem extends StatelessWidget {
-  final String text;
-  const _TrainingCheckItem({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text,
-                style: const TextStyle(color: Colors.white70, fontSize: 13)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LimitItem extends StatelessWidget {
-  final String label;
-  final String value;
-  const _LimitItem({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label,
-                style: const TextStyle(color: Colors.white70, fontSize: 13)),
-          ),
-          const Icon(Icons.check_circle, color: Colors.green, size: 16),
-          const SizedBox(width: 6),
-          Text(value,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-}
 
 class _BottomNavItem extends StatelessWidget {
   final IconData icon;
